@@ -1,0 +1,12 @@
+build/
+dist/
+*.egg-info/
+
+# IDE specific files
+.idea/**/*.xml
+.idea/**/*.iml
+!.idea/dictionaries/*.xml
+
+*~
+*.[oa]
+__pycache__
