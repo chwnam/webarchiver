@@ -26,7 +26,7 @@ import python_web_archiver
 import python_web_archiver.connectors as connectors
 
 
-RESOURCE_PATH = os.path.join(os.path.dirname(__file__), 'resources')
+RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources')
 
 TEST_SERVER_ADDRESS = ('127.0.0.1', 8895)
 
@@ -83,7 +83,7 @@ class TestArchiver(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.test_path = os.path.dirname(__file__)
+        cls.test_path = os.path.dirname(os.path.abspath(__file__))
         cls.server = get_http_test_server_thread(SimpleHTTPRequestHandler)
         if not cls.server.is_alive():
             cls.server.start()
