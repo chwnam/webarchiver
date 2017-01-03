@@ -83,7 +83,6 @@ class TestArchiver(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print('setUpClass')
         cls.test_path = os.path.dirname(__file__)
         cls.server = get_http_test_server_thread(SimpleHTTPRequestHandler)
         if not cls.server.is_alive():
@@ -276,7 +275,6 @@ class TestConnectorsUserAgents(unittest.TestCase):
             user_agent = ''  # stores last user agent accessed to path '/'
 
             def do_GET(self):
-                print(self.path)
                 self.send_response(200)
                 self.send_header('Content-type', 'text/plain')
                 self.end_headers()
