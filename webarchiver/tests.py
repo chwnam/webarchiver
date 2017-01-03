@@ -22,8 +22,8 @@ from six.moves.urllib.parse import urlparse, parse_qsl
 # noinspection PyUnresolvedReferences
 from six.moves.BaseHTTPServer import BaseHTTPRequestHandler
 
-import python_web_archiver
-import python_web_archiver.connectors as connectors
+import webarchiver
+import webarchiver.connectors as connectors
 
 
 RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources')
@@ -105,7 +105,7 @@ class TestArchiver(unittest.TestCase):
 
         # run the function
         file_buffer = io.BytesIO()
-        python_web_archiver.url_download(test_url, file_buffer)
+        webarchiver.url_download(test_url, file_buffer)
 
         # check the content is true
         with open(file_path, 'rb') as f:
@@ -125,7 +125,7 @@ class TestArchiver(unittest.TestCase):
         self.assertTrue(os.path.exists(test_path))
 
         # testing
-        python_web_archiver.zip_recursive(archive_path, test_path)
+        webarchiver.zip_recursive(archive_path, test_path)
 
         # archived our directory
         archive_root = os.path.dirname(self.test_path)
@@ -168,7 +168,7 @@ class TestArchiver(unittest.TestCase):
             ]
 
         # test as .tar.gz
-        python_web_archiver.archive_remote_urls(
+        webarchiver.archive_remote_urls(
             download_path=download_path,
             title=title,
             urls=urls,
@@ -188,7 +188,7 @@ class TestArchiver(unittest.TestCase):
             )
 
         # test as .zip
-        python_web_archiver.archive_remote_urls(
+        webarchiver.archive_remote_urls(
             download_path=download_path,
             title=title,
             urls=urls,
@@ -208,7 +208,7 @@ class TestArchiver(unittest.TestCase):
             )
 
     def test_get_safe_name(self):
-        result = python_web_archiver.get_safe_name('i_/am-:un|safe? maybe,...')
+        result = webarchiver.get_safe_name('i_/am-:un|safe? maybe,...')
         self.assertEqual('i_am-unsafe maybe,...', result)
 
 
