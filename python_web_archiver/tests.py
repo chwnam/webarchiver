@@ -4,13 +4,13 @@ import io
 import operator
 import os
 import tempfile
-import time
 import unittest
 import tarfile
+import time
 import zipfile
 
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from threading import Thread
-
 # noinspection PyUnresolvedReferences
 from six.moves import SimpleHTTPServer
 # noinspection PyUnresolvedReferences
@@ -18,10 +18,13 @@ from six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
 # noinspection PyUnresolvedReferences
 from six.moves.socketserver import TCPServer
 # noinspection PyUnresolvedReferences
-from six.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urlparse, parse_qsl
+# noinspection PyUnresolvedReferences
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler
 
 import python_web_archiver
 import python_web_archiver.connectors as connectors
+
 
 RESOURCE_PATH = os.path.join(os.path.dirname(__file__), 'resources')
 
@@ -41,18 +44,19 @@ def factory_connector():
     get default RequestsConnector.
     test_cookie.cookie files are created, but it will be removed as soon as the program exits.
     """
-    cookie_file = Path(os.path.dirname(__file__)).child('test_cookie.cookie')
-    extra_headers = {'user-agents': connectors.UserAgents.chrome()}
+    cookie_file = os.path.join(os.path.dirname(__file__), 'test_cookie.cookie')
+    extra_headers = {'user-agent': connectors.UserAgents.chrome()}
     connector = connectors.RequestsConnector(cookie_file, extra_headers)
     atexit.register(unlink_file, cookie_file)
     return connector
 
 
-def get_http_test_server_thread():
+def get_http_test_server_thread(handler_class):
     """
     get local http server: root path is 'archiver.resources'.
     please noted: you should call stop() before finishing
     """
+
     class SimpleTestServerThread(Thread):
         daemon = True
         current_path = os.getcwd()
@@ -60,42 +64,35 @@ def get_http_test_server_thread():
 
         def run(self):
             os.chdir(RESOURCE_PATH)
-            self.httpd = TCPServer(TEST_SERVER_ADDRESS, SimpleHTTPRequestHandler)
+            TCPServer.allow_reuse_address = True
+            # SimpleHTTPRequestHandler
+            self.httpd = TCPServer(TEST_SERVER_ADDRESS, handler_class)
             self.httpd.serve_forever()
 
-    def server_cleanup(thread):
-        print('server_cleanup() called!', thread)
-        if thread.is_alive():
-            thread.httpd.shutdown()
-            thread.join()
-            thread.join()
-            print('is it alive?: %s' % thread.is_alive())
-            # while not thread.is_alive():
-            #     print('waiting for completed...')
-            #     time.sleep(2)
-            print('thread joined!')
+        def server_cleanup(self):
+            if self.is_alive():
+                self.httpd.shutdown()
+                self.httpd.server_close()
+                self.join()
 
-    t = SimpleTestServerThread()
-    atexit.register(server_cleanup, t)
-    print('get_http_test_server_thread() called')
-    return t
-
-
-server_thread = get_http_test_server_thread()
+    return SimpleTestServerThread()
 
 
 class TestArchiver(unittest.TestCase):
+    server = None
 
-    def setUp(self):
-        print('setUp')
-        self.test_path = os.path.dirname(__file__)
-        self.server = server_thread
-        if not self.server.is_alive():
-            print('try to run the server!')
-            self.server.start()
+    @classmethod
+    def setUpClass(cls):
+        print('setUpClass')
+        cls.test_path = os.path.dirname(__file__)
+        cls.server = get_http_test_server_thread(SimpleHTTPRequestHandler)
+        if not cls.server.is_alive():
+            cls.server.start()
 
-    def tearDown(self):
-        print('tearDown')
+    @classmethod
+    def tearDownClass(cls):
+        if cls.server.is_alive():
+            cls.server.server_cleanup()
 
     def test_url_download(self):
         """
@@ -211,12 +208,129 @@ class TestArchiver(unittest.TestCase):
                 comparison_list
             )
 
-    def test_simple_http_server(self):
-        pass
-        #     server = get_http_test_server_thread()
-        #     print('hello!')
-        #     server.join(5)
-
     def test_get_safe_name(self):
         result = python_web_archiver.get_safe_name('i_/am-:un|safe? maybe,...')
         self.assertEqual('i_am-unsafe maybe,...', result)
+
+
+class TestConnectorMixin(unittest.TestCase):
+    """
+    Testing connectors.ConnectorMixin
+    """
+
+    test_cases = [
+        # 0: kwargs
+        # 1: expected
+
+        # 0th
+        (
+            {
+                'url':    'http://google.com/',
+                'params': None,
+            },
+            'http://google.com/'
+        ),
+
+        (
+            {
+                'url':    'http://google.com/?q=green+tea',
+                'params': {
+                    'refer': 'changwoo.pe.kr',
+                    'param': 'https',
+                    'token': 'test_value'
+                },
+            },
+            'http://google.com/?q=green+tea&refer=changwoo.pe.kr&param=https&token=test_value'
+        ),
+    ]
+
+    def test_create_cet_url(self):
+        """
+        tests connectors.ConnectorMixin.create_get_url()
+        :return:
+        """
+        for kwargs, expected in self.test_cases:
+            return_value = connectors.ConnectorMixin.create_get_url(**kwargs)
+
+            actual_query = parse_qsl(urlparse(return_value).query)
+            expected_query = parse_qsl(urlparse(expected).query)
+
+            actual_query.sort(key=operator.itemgetter(0))
+            expected_query.sort(key=operator.itemgetter(0))
+
+            self.assertListEqual(actual_query, expected_query)
+
+
+class TestConnectorsUserAgents(unittest.TestCase):
+    """
+    Testing connector's user agent
+    """
+    server = None
+
+    @classmethod
+    def setUpClass(cls):
+        class UserAgentEchoHandler(BaseHTTPRequestHandler):
+            """
+            A dumb handler just to check headers
+            """
+            user_agent = ''  # stores last user agent accessed to path '/'
+
+            def do_GET(self):
+                print(self.path)
+                self.send_response(200)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(self.headers['user-agent'])
+                if self.path == '/':
+                    self.__class__.user_agent = self.headers['user-agent']
+                return
+
+        cls.server = get_http_test_server_thread(UserAgentEchoHandler)
+        if not cls.server.is_alive():
+            cls.server.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.server.is_alive():
+            cls.server.server_cleanup()
+
+    def test_requests_connector(self):
+        """
+        Test RequestsConnector properly accepts our User-Agent header request.
+        """
+        cookie_file = os.path.join(os.path.dirname(__file__), 'test_cookie.cookie')
+        extra_headers = {'user-agent': connectors.UserAgents.chrome()}
+        connector = connectors.RequestsConnector(cookie_file, 0, extra_headers)
+
+        connector.get('http://%s:%s' % (TEST_SERVER_ADDRESS[0], TEST_SERVER_ADDRESS[1]))
+        actual_agent = self.server.httpd.RequestHandlerClass.user_agent
+        expected_agent = connectors.UserAgents.chrome()
+
+        self.assertEqual(actual_agent, expected_agent)
+
+    def test_phantomjs_connector(self):
+        """
+        Test PhantomJSConnector accepts our User-agent header order properly
+        """
+        caps = dict(DesiredCapabilities.PHANTOMJS)
+        caps['phantomjs.page.settings.userAgent'] = connectors.UserAgents.firefox()
+
+        connector = connectors.PhantomJSConnector(
+            desired_capabilities=caps,
+            service_log_path=os.devnull,
+        )
+
+        connector.get('http://%s:%s' % (TEST_SERVER_ADDRESS[0], TEST_SERVER_ADDRESS[1]))
+        actual_agent = self.server.httpd.RequestHandlerClass.user_agent
+        expected_agent = caps['phantomjs.page.settings.userAgent']
+
+        self.assertEqual(actual_agent, expected_agent)
+
+        connector.disconnect()
+
+
+class TestRequestsConnectorCookie(unittest.TestCase):
+    """
+    Test RequestConnector's cookie settings.
+    """
+    pass
