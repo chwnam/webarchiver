@@ -1,15 +1,15 @@
 from __future__ import with_statement
 from setuptools import setup, find_packages
 
-import python_web_archiver as pwa
+import webarchiver
 
 
 setup(
-    name='python-web-archiver',
+    name='webarchiver',
 
-    version=pwa.__version__,
+    version=webarchiver.__version__,
 
-    url='https://github.com/chwnam/python-web-archiver.git',
+    url='https://github.com/chwnam/webarchiver.git',
 
     author='changwoo',
 

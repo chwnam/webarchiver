@@ -6,6 +6,8 @@
       <w>dirnames</w>
       <w>dirpath</w>
       <w>filenames</w>
+      <w>filesize</w>
+      <w>webarchiver</w>
     </words>
   </dictionary>
 </component>

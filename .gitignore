@@ -3,6 +3,7 @@ dist/
 *.egg-info/
 
 # IDE specific files
+.idea/.name
 .idea/**/*.xml
 .idea/**/*.iml
 !.idea/dictionaries/*.xml
