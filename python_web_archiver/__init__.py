@@ -95,10 +95,7 @@ def archive_remote_urls(download_path, title, urls, archiver='.tar.gz', cleanup=
     for idx, url in enumerate(urls):
         ext = path_splitext(urlparse(url).path.strip('/').split('/')[-1])[1]
         path = path_join(save_dir, '%02d%s' % (idx + 1, ext))
-        url_download(
-            url=url,
-            download_path=path
-        )
+        url_download(url=url, download_path=path)
         assert path_exists(path)
         if idx < sleep_index:
             sleep(each_delay)
