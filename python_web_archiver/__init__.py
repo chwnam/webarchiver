@@ -28,7 +28,7 @@ from requests import get as requests_get
 from .connectors import UserAgents
 
 __author__ = 'Changwoo Nam <ep6tri@hotmail.com>'
-__version__ = '1.0.0a1'
+__version__ = '1.0.0'
 
 
 def url_download(url, download_path, **kwargs):
