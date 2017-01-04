@@ -10,6 +10,8 @@ import time
 import zipfile
 
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.support.expected_conditions import presence_of_element_located
+
 from threading import Thread
 # noinspection PyUnresolvedReferences
 from six.moves import SimpleHTTPServer
@@ -332,3 +334,24 @@ class TestRequestsConnectorCookie(unittest.TestCase):
     Test RequestConnector's cookie settings.
     """
     pass
+
+
+class TestPhantomjsFactoryMixinWaits(unittest.TestCase):
+    """
+    Test connectors.phantomjs_factory_mixin_waits
+    """
+    def test(self):
+        waits = connectors.phantomjs_factory_mixin_waits(
+            wait=10,
+            wait_method='presence_of_element_located',
+            by='CSS_SELECTOR',
+            expr='div.content'
+        )
+
+        self.assertTrue('wait' in waits)
+        self.assertEqual(waits['wait'], 10)
+
+        self.assertTrue('until_condition' in waits)
+        self.assertTrue(isinstance(waits['until_condition'], presence_of_element_located))
+        self.assertEqual(waits['until_condition'].locator[0], 'css selector')
+        self.assertEqual(waits['until_condition'].locator[1], 'div.content')

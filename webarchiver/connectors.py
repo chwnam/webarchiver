@@ -189,7 +189,8 @@ class PhantomJSConnector(BaseConnector):
         self.driver.get(url)
         if self.wait and self.until_condition:
             WebDriverWait(self.driver, self.wait).until(self.until_condition)
-        return self.driver.page_source
+        self.last_content = self.driver.page_source
+        return self.last_content
 
     def post(self, url, data=None, headers=None):
         raise NotImplemented('')
@@ -248,7 +249,7 @@ def phantomjs_factory_mixin_waits(wait, wait_method, by, expr):
     if method and by_attr:
         return {
             'wait': wait,
-            'until_condition': method(by_attr, expr)
+            'until_condition': method((by_attr, expr))
         }
     raise AttributeError('wait_method or by attribute is invalid.')
 
