@@ -1,5 +1,5 @@
-python-web-archiver
-===================
+Web Archiver
+============
 my tool for scrap html pages
 
 웹 상의 HTML 문서를 수집하고 파싱을 할 때 Requests 라이브러리나 BeautifulSoup 라이브러리를 이용하면 매우 간단하게 처리가 가능하지만,
